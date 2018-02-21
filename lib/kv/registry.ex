@@ -11,6 +11,13 @@ defmodule KV.Registry do
   end
 
   @doc """
+  Shows all buckets
+  """
+  def index(server) do
+    GenServer.call(server, {:index})
+  end
+
+  @doc """
   Looks up the bucket pid for `name` stored in `server`.
 
   Returns `{:ok, pid}` if the bucket exists, `:error` otherwise.
@@ -41,6 +48,10 @@ defmodule KV.Registry do
     {:ok, {names, refs}}
   end
 
+  def handle_call({:index}, _from, {names, _} = state) do
+    {:reply, names, state}
+  end
+
   def handle_call({:lookup, name}, _from, {names, _} = state) do
     {:reply, Map.fetch(names, name), state}
   end
@@ -50,7 +61,7 @@ defmodule KV.Registry do
       {:ok, pid} = Map.fetch(names, name)
       {:reply, {name, pid}, {names, refs}}
     else
-      {:ok, pid} = KV.Bucket.start_link([])
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.Bucket)
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
