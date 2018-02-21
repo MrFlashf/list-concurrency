@@ -23,7 +23,7 @@ defmodule KV.Registry do
   Ensures there is a bucket associated with the given `name` in `server`.
   """
   def create(server, name) do
-    GenServer.cast(server, {:create, name})
+    GenServer.call(server, {:create, name})
   end
 
   @doc """
@@ -45,15 +45,16 @@ defmodule KV.Registry do
     {:reply, Map.fetch(names, name), state}
   end
 
-  def handle_cast({:create, name}, {names, refs}) do
+  def handle_call({:create, name}, _from, {names, refs} = state) do
     if Map.has_key?(names, name) do
-      {:noreply, {names, refs}}
+      {:ok, pid} = Map.fetch(names, name)
+      {:reply, {name, pid}, {names, refs}}
     else
       {:ok, pid} = KV.Bucket.start_link([])
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
-      {:noreply, {names, refs}}
+      {:reply, {name, pid}, {names, refs}}
     end
   end
 
