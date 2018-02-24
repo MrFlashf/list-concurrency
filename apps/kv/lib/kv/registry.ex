@@ -65,7 +65,7 @@ defmodule KV.Registry do
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
-      {:reply, {name, pid}, {names, refs}}
+      {:reply, name, {names, refs}}
     end
   end
 
